@@ -13,8 +13,6 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.tasks.dependencycheck;
 
@@ -24,7 +22,6 @@ import org.codehaus.staxmate.SMInputFactory;
 import org.codehaus.staxmate.in.SMHierarchicCursor;
 import org.codehaus.staxmate.in.SMInputCursor;
 import org.hibernate.Query;
-import org.hibernate.SessionFactory;
 import org.hibernate.Session;
 import org.owasp.dependencycheck.agent.DependencyCheckScanAgent;
 import org.owasp.dependencycheck.dependency.Confidence;
@@ -32,17 +29,19 @@ import org.owasp.dependencycheck.dependency.Dependency;
 import org.owasp.dependencycheck.exception.ScanAgentException;
 import org.owasp.dependencycheck.reporting.ReportGenerator;
 import org.owasp.dependencycheck.utils.FileUtils;
-import org.owasp.dependencytrack.Constants;
+import org.owasp.dependencytrack.dao.BaseDao;
 import org.owasp.dependencytrack.model.Library;
 import org.owasp.dependencytrack.model.LibraryVersion;
 import org.owasp.dependencytrack.model.License;
 import org.owasp.dependencytrack.model.ScanResult;
 import org.owasp.dependencytrack.model.Vulnerability;
+import org.owasp.dependencytrack.service.VulnerabilityService;
 import org.owasp.dependencytrack.tasks.DependencyCheckAnalysisRequestEvent;
 import org.owasp.dependencytrack.util.XmlUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -65,53 +65,63 @@ import java.util.List;
  * @author Steve Springett (steve.springett@owasp.org)
  */
 @Service
-@Transactional
-public class DependencyCheckAnalysis implements ApplicationListener<DependencyCheckAnalysisRequestEvent> {
+public class DependencyCheckAnalysis extends BaseDao implements ApplicationListener<DependencyCheckAnalysisRequestEvent> {
 
     /**
      * Setup logger
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(DependencyCheckAnalysis.class);
 
-    /**
-     * The Hibernate SessionFactory
-     */
+    @Value("${app.data.dir}")
+    private String appDataDir;
+
+    @Value("${app.dir}")
+    private String appDir;
+
+    @Value("${app.suppression.path}")
+    private String appSuppressionPath;
+
     @Autowired
-    private SessionFactory sessionFactory;
+    private VulnerabilityService vulnerabilityService;
 
-    /**
-     * Default constructor.
-     */
+    private Session session;
+
+    private AtomicBoolean inProgress = new AtomicBoolean(false);
+
     public DependencyCheckAnalysis() {
-    }
-
-    /**
-     * Constructor used when sessionFactory cannot be autowired.
-     * @param sessionFactory a Hibernate SessionFactory
-     */
-    public DependencyCheckAnalysis(SessionFactory sessionFactory) {
-        this.sessionFactory = sessionFactory;
     }
 
     /**
      * {@inheritDoc}
      */
     public void onApplicationEvent(DependencyCheckAnalysisRequestEvent event) {
-        final List<LibraryVersion> libraryVersions = event.getLibraryVersions();
-        if (libraryVersions == null || libraryVersions.size() == 0) {
-            execute();
-        } else {
-            execute(libraryVersions);
+        if(!inProgress.get()) {
+            try {
+                inProgress.set(true);
+                LOGGER.info("Starting Dependency-Check analysis");
+                this.session = getSession();
+                final List<LibraryVersion> libraryVersions = event.getLibraryVersions();
+                if (libraryVersions == null || libraryVersions.size() == 0) {
+                    execute();
+                } else {
+                    execute(libraryVersions);
+                }
+                vulnerabilityService.updateLibraryVersionVulnerabilityCount();
+                vulnerabilityService.updateApplicationVersionVulnerabilityCount();
+                cleanup();
+            } finally {
+                inProgress.set(false);
+            }
         }
     }
 
     /**
      * Performs a scan against all libraries in the database.
      */
+    @Transactional
     public synchronized void execute() {
-        sessionFactory.openSession();
         // Retrieve a list of all library versions defined in the system
-        final Query query = sessionFactory.getCurrentSession().createQuery("from LibraryVersion");
+        final Query query = session.createQuery("from LibraryVersion");
         @SuppressWarnings("unchecked")
         final List<LibraryVersion> libraryVersions = query.list();
 
@@ -123,18 +133,12 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
      * @param libraryVersions a list of LibraryVersion object to perform a scan against
      */
     public synchronized void execute(List<LibraryVersion> libraryVersions) {
-        if (sessionFactory.isClosed()) {
-            sessionFactory.openSession();
-        }
         if (performAnalysis(libraryVersions)) {
             try {
                 analyzeResults();
             } catch (SAXException | IOException e) {
                 LOGGER.error("An error occurred while analyzing Dependency-Check results: " + e.getMessage());
             }
-        }
-        if (!sessionFactory.isClosed()) {
-            sessionFactory.close();
         }
     }
 
@@ -179,8 +183,8 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
 
         final DependencyCheckScanAgent scanAgent = new DependencyCheckScanAgent();
         scanAgent.setConnectionString("jdbc:h2:file:%s;FILE_LOCK=SERIALIZED;AUTOCOMMIT=ON;");
-        scanAgent.setDataDirectory(Constants.DATA_DIR);
-        scanAgent.setReportOutputDirectory(Constants.APP_DIR);
+        scanAgent.setDataDirectory(appDataDir);
+        scanAgent.setReportOutputDirectory(appDir);
         scanAgent.setReportFormat(ReportGenerator.Format.ALL);
         scanAgent.setAutoUpdate(true);
         scanAgent.setDependencies(dependencies);
@@ -188,9 +192,9 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
         scanAgent.setNexusAnalyzerEnabled(false);
 
         // If a global suppression file exists, use it.
-        final File suppressions = new File(Constants.SUPPRESSION_PATH_FILENAME);
+        final File suppressions = new File(appSuppressionPath);
         if (suppressions.exists() && suppressions.isFile()) {
-            scanAgent.setSuppressionFile(Constants.SUPPRESSION_PATH_FILENAME);
+            scanAgent.setSuppressionFile(suppressions.getAbsolutePath());
         }
 
         boolean success = false;
@@ -214,7 +218,7 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
         final SMInputFactory inputFactory = XmlUtil.newStaxParser();
         FileInputStream fis = null;
         try {
-            fis = new FileInputStream(new File(Constants.APP_DIR + File.separator + "dependency-check-report.xml"));
+            fis = new FileInputStream(new File(appDir + File.separator + "dependency-check-report.xml"));
             final SMHierarchicCursor rootC = inputFactory.rootElementCursor(fis);
             rootC.advance(); // <analysis>
             final SMInputCursor cursor = rootC.childCursor();
@@ -356,8 +360,8 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
      * @param vulnerability the newly created vulnerability to commit
      * @param libraryVersionId the unique identifier of the library version associated with the vulnerability
      */
-    private void commitVulnerabilityData(Vulnerability vulnerability, int libraryVersionId) {
-        final Session session = sessionFactory.getCurrentSession();
+    @Transactional
+    private void commitVulnerabilityData(final Vulnerability vulnerability, final int libraryVersionId) {
         final Query query = session.createQuery("FROM LibraryVersion WHERE id=:id");
         query.setParameter("id", libraryVersionId);
         final LibraryVersion libraryVersion = (LibraryVersion) query.uniqueResult();
@@ -390,8 +394,8 @@ public class DependencyCheckAnalysis implements ApplicationListener<DependencyCh
      * @param name the name of the vulnerability (typically a CVE identifier)
      * @return a Vulnerability object
      */
-    private Vulnerability getVulnerability(String name) {
-        final Query query = sessionFactory.getCurrentSession().createQuery("from Vulnerability where name=:name order by id asc");
+    private Vulnerability getVulnerability(final String name) {
+        final Query query = session.createQuery("from Vulnerability where name=:name order by id asc");
         query.setParameter("name", name);
         @SuppressWarnings("unchecked")
         final List<Vulnerability> vulns = query.list();

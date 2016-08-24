@@ -13,15 +13,12 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.controller;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.owasp.dependencytrack.model.Application;
-import org.owasp.dependencytrack.model.Library;
+import org.owasp.dependencytrack.model.LibraryVendor;
 import org.owasp.dependencytrack.model.LibraryVersion;
 import org.owasp.dependencytrack.model.License;
 import org.owasp.dependencytrack.service.LibraryVersionService;
@@ -29,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -227,9 +223,9 @@ public class LibraryController extends AbstractController {
      */
     //  @RequiresPermissions("libraryHierarchy")
     @RequestMapping(value = "/libraryHierarchy", method = RequestMethod.GET)
-    public String getLibraryHierarchy(Map<String, Object> map) {
-        map.put("libraryVendors", libraryVersionService.getLibraryHierarchy());
-        return "libraryHierarchy";
+    @ResponseBody
+    public List<LibraryVendor> getLibraryHierarchy(Map<String, Object> map) {
+        return libraryVersionService.getLibraryHierarchy();
 
     }
 

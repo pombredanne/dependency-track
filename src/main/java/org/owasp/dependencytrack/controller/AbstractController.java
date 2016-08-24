@@ -13,12 +13,9 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.controller;
 
-import org.owasp.dependencytrack.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
@@ -43,13 +40,6 @@ public abstract class AbstractController {
     @Autowired
     private Environment environment;
 
-    /**
-     * Dependency-Track's centralized Configuration class
-     */
-    @Autowired
-    private Config config;
-
-
     public ServletContext getServletContext() {
         return servletContext;
     }
@@ -58,8 +48,5 @@ public abstract class AbstractController {
         return environment;
     }
 
-    public Config getConfig() {
-        return config;
-    }
 
 }

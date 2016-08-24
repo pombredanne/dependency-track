@@ -13,29 +13,20 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
-
 package org.owasp.dependencytrack.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
-@Table(name = "APPLICATIONDEPENDENCY")
+@Table(name ="applicationdependency")
 public final class ApplicationDependency implements Cloneable {
 
     /**
      * The unique identifier of the persisted object.
      */
     @Id
-    @Column(name = "ID")
+    @Column(name ="id")
     @GeneratedValue
     private Integer id;
 
@@ -43,14 +34,14 @@ public final class ApplicationDependency implements Cloneable {
      * The version of the library an applicationVersion has a dependency on.
      */
     @OneToOne
-    @JoinColumn(name = "LIBRARYVERSIONID")
+    @JoinColumn(name ="libraryversionid")
     private LibraryVersion libraryVersion;
 
     /**
      * The version of the application of this dependency.
      */
     @OneToOne
-    @JoinColumn(name = "APPVERSIONID")
+    @JoinColumn(name ="appversionid")
     private ApplicationVersion applicationVersion;
 
     /**

@@ -13,8 +13,6 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.tasks;
 
@@ -30,17 +28,30 @@ import java.util.List;
 public class DependencyCheckAnalysisRequestEvent extends ApplicationEvent {
 
     /**
+	 * 
+	 */
+	private static final long serialVersionUID = -2670998415277531364L;
+	/**
      * A list of library versions to scan.
      */
     private List<LibraryVersion> libraryVersions;
 
     /**
      * Constructs a new DependencyCheckAnalysisRequestEvent.
+     * @param source the source object making the call
      * @param libraryVersions a list of library versions to scan
      */
-    public DependencyCheckAnalysisRequestEvent(List<LibraryVersion> libraryVersions) {
-        super(libraryVersions);
+    public DependencyCheckAnalysisRequestEvent(Object source, List<LibraryVersion> libraryVersions) {
+        super(source);
         this.libraryVersions = libraryVersions;
+    }
+
+    /**
+     * Constructs a new DependencyCheckAnalysisRequestEvent.
+     * @param source the source object making the call
+     */
+    public DependencyCheckAnalysisRequestEvent(Object source) {
+        super(source);
     }
 
     /**

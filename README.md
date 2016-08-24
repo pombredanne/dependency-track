@@ -23,9 +23,15 @@ General project information can be found on the [OWASP Wiki].
 Usage
 -
 
-> $ mvn package
+> $ mvn clean package
 
 Finally, deploy the resulting WAR to your web application server (Tomcat, Jetty, etc)
+
+or leverage the power of Spring Boot and simply execute
+
+> java -jar dtrack.war
+
+If compiling from source, dtrack.war will reside in the 'target' directory.
 
 
 Mailing List

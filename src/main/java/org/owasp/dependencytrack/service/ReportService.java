@@ -13,27 +13,16 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
-
 package org.owasp.dependencytrack.service;
 
 import org.owasp.dependencycheck.reporting.ReportGenerator;
-import org.owasp.dependencytrack.dao.ReportDao;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
-public class ReportService {
-
-    @Autowired
-    private ReportDao reportDao;
-
+/**
+ * Created by Jason Wraxall on 1/12/15.
+ */
+public interface ReportService {
     @Transactional
-    public String generateDependencyCheckReport(int applicationVersionId, ReportGenerator.Format format) {
-        return reportDao.generateDependencyCheckReport(applicationVersionId, format);
-    }
-
+    String generateDependencyCheckReport(int applicationVersionId, ReportGenerator.Format format);
 }

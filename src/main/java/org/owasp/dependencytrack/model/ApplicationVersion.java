@@ -13,44 +13,34 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
-
 package org.owasp.dependencytrack.model;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-import javax.persistence.Transient;
+import javax.persistence.*;
 
 @Entity
-@Table(name = "APPLICATIONVERSION")
+@Table(name = "applicationversion")
 public final class ApplicationVersion implements Cloneable {
 
     /**
      * The unique identifier of the persisted object.
      */
     @Id
-    @Column(name = "ID")
+    @Column(name = "id")
     @GeneratedValue
     private Integer id;
 
     /**
      * The version string (i.e. 1.0) of the application.
      */
-    @Column(name = "VERSION", nullable = false)
+    @Column(name = "version", nullable = false)
     private String version;
 
     /**
      * The parent application.
      */
     @ManyToOne
-    @JoinColumn(name = "APPID", nullable = false)
+    @JoinColumn(name = "appid", nullable = false)
     private Application application;
 
     /**
@@ -58,7 +48,7 @@ public final class ApplicationVersion implements Cloneable {
      * This status is updated periodically by the system and is primarily used
      * used to reduce unnecessary SQL queries to calculate this statistic.
      */
-    @Column(name = "VULNCOUNT")
+    @Column(name = "vulncount")
     private Integer vulnCount;
 
     /**

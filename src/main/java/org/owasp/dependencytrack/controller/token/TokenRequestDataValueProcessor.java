@@ -13,8 +13,6 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.controller.token;
 
@@ -78,5 +76,17 @@ public class TokenRequestDataValueProcessor implements RequestDataValueProcessor
     public String processUrl(HttpServletRequest request, String url) {
         return url;
     }
+
+    /**
+     * Invoked when a new form action is rendered. Not required for token logic. Required by interface.
+     * @param request the current request
+     * @param action the form action
+     * @return the action to use, possibly modified
+     */	@Override
+	public String processAction(HttpServletRequest request, String action,
+			String arg2)
+	{
+		return action;
+	}
 
 }

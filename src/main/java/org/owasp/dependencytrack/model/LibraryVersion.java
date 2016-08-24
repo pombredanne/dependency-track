@@ -13,10 +13,7 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
-
 package org.owasp.dependencytrack.model;
 
 import javax.persistence.Column;
@@ -28,25 +25,24 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OrderBy;
 import javax.persistence.Table;
-import java.beans.Transient;
 import java.util.UUID;
 
 @Entity
-@Table(name = "LIBRARYVERSION")
+@Table(name = "libraryversion")
 public final class LibraryVersion implements Cloneable {
 
     /**
      * The unique identifier of the persisted object.
      */
     @Id
-    @Column(name = "ID")
+    @Column(name = "id")
     @GeneratedValue
     private Integer id;
 
     /**
      * The String representation of the version of the library (i.e. 1.3.0).
      */
-    @Column(name = "LIBRARYVERSION")
+    @Column(name = "libraryversion")
     @OrderBy
     private String libraryversion;
 
@@ -54,7 +50,7 @@ public final class LibraryVersion implements Cloneable {
      * The parent Library object for this version.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "LIBRARYID", nullable = false)
+    @JoinColumn(name = "libraryid", nullable = false)
     private Library library;
 
     /**
@@ -72,7 +68,7 @@ public final class LibraryVersion implements Cloneable {
     /**
      * The String representation of a universally unique identifier
      */
-    @Column(name = "UUID")
+    @Column(name = "uuid")
     private String uuid;
 
     /**
@@ -80,8 +76,8 @@ public final class LibraryVersion implements Cloneable {
      * This status is updated periodically by the system and is primarily used
      * used to reduce unnecessary SQL queries to calculate this statistic.
      */
-    @Column(name = "VULNCOUNT")
-    private Integer vulnCount;
+    @Column(name = "vulncount")
+    private Integer vulnCount = 0;
 
     /**
      * Clones this specific object (minus the objects id).

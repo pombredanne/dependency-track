@@ -13,14 +13,13 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.auth;
 
 import org.apache.shiro.realm.jdbc.JdbcRealm;
-import org.owasp.dependencytrack.Config;
 import org.owasp.dependencytrack.model.Roles;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -32,7 +31,15 @@ import java.util.Set;
  *
  * @author Steve Springett (steve.springett@owasp.org)
  */
+@Component
 public class JdbcConfigurableDefaultRoleRealm extends JdbcRealm {
+
+    @Value("${defaultUserRole:USER}")
+    public String userRole;
+
+    private Roles.ROLE defaultUserRole() {
+        return Roles.ROLE.getRole(userRole);
+    }
 
     /**
      * {@inheritDoc}
@@ -40,7 +47,7 @@ public class JdbcConfigurableDefaultRoleRealm extends JdbcRealm {
     protected Set<String> getRoleNamesForUser(Connection conn, String username) throws SQLException {
         final Set<String> roleNames = super.getRoleNamesForUser(conn, username);
 
-        final Roles.ROLE defaultRole = Config.getInstance().getDefaultRole();
+        final Roles.ROLE defaultRole = defaultUserRole();
         if (roleNames.size() == 0 && defaultRole != null) {
             roleNames.add(defaultRole.name().toLowerCase());
         }

@@ -13,14 +13,12 @@
  *
  * You should have received a copy of the GNU General Public License along with
  * Dependency-Track. If not, see http://www.gnu.org/licenses/.
- *
- * Copyright (c) Axway. All Rights Reserved.
  */
 package org.owasp.dependencytrack.listener;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
+import org.owasp.dependencytrack.dao.BaseDao;
 import org.owasp.dependencytrack.model.LibraryVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +35,7 @@ import java.util.List;
  * @author Steve Springett (steve.springett@owasp.org)
  */
 @Component
-public class DataUpgradeCorrections implements ApplicationListener<ContextRefreshedEvent> {
+public class DataUpgradeCorrections extends BaseDao implements ApplicationListener<ContextRefreshedEvent> {
 
     /**
      * Setup logger
@@ -45,26 +43,19 @@ public class DataUpgradeCorrections implements ApplicationListener<ContextRefres
     private static final Logger LOGGER = LoggerFactory.getLogger(DataUpgradeCorrections.class);
 
     /**
-     * The Hibernate SessionFactory
-     */
-    private SessionFactory sessionFactory;
-
-    /**
      * Method is called when the application context is started or refreshed.
      *
      * @param event A ContextRefreshedEvent
      */
-    @Override
     public void onApplicationEvent(ContextRefreshedEvent event) {
-        this.sessionFactory = (SessionFactory) event.getApplicationContext().getBean("sessionFactory");
-
         try {
             correctGeneratedSha1Length();
-
         } catch (Exception e) {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn(e.getMessage());
             }
+        } finally {
+            cleanup(); // Closes all open sessions
         }
     }
 
@@ -74,9 +65,9 @@ public class DataUpgradeCorrections implements ApplicationListener<ContextRefres
      * SHA1 hashes which require 40 characters. This method identifies any 32 character
      * SHA1 hashes in the database and updates matching records with eight leading zeros.
      */
-    private void correctGeneratedSha1Length() {
-        final Session session = sessionFactory.openSession();
-
+    @SuppressWarnings("unchecked")
+	private void correctGeneratedSha1Length() {
+        Session session = getSession();
         final Query query = session.createQuery("FROM LibraryVersion");
         final List<LibraryVersion> libraryVersions = query.list();
         session.getTransaction().begin();
@@ -89,7 +80,6 @@ public class DataUpgradeCorrections implements ApplicationListener<ContextRefres
             }
         }
         session.getTransaction().commit();
-        session.close();
     }
 
 }
